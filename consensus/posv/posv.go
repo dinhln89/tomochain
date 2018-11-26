@@ -468,14 +468,23 @@ func WhoIsCreator(snap *Snapshot, header *types.Header) (common.Address, error) 
 	return m, nil
 }
 
-func YourTurn(masternodes []common.Address, snap *Snapshot, header *types.Header, cur common.Address) (int, int, bool, error) {
+func YourTurn(masternodes []common.Address, snap *Snapshot, prevParent *types.Block, cur common.Address) (int, int, bool, error) {
 	if len(masternodes) == 0 {
-		return -1, -1, true, nil
+		return -2, -1, true, nil
 	}
+	if prevParent == nil {
+		curIndex := position(masternodes, cur)
+		if curIndex == 1 {
+			return 0, curIndex, true, nil
+		} else {
+			return -2, -1, false, nil
+		}
+	}
+	header := prevParent.Header()
 	pre := common.Address{}
 	// masternode[0] has chance to create block 1
 	var err error
-	preIndex := -1
+	preIndex := -2
 	if header.Number.Uint64() != 0 {
 		pre, err = WhoIsCreator(snap, header)
 		if err != nil {
@@ -488,7 +497,7 @@ func YourTurn(masternodes []common.Address, snap *Snapshot, header *types.Header
 	for i, s := range masternodes {
 		fmt.Printf("%d - %s\n", i, s.String())
 	}
-	if (preIndex+1)%len(masternodes) == curIndex {
+	if (preIndex+2)%len(masternodes) == curIndex {
 		return preIndex, curIndex, true, nil
 	}
 	return preIndex, curIndex, false, nil

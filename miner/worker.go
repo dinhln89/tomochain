@@ -456,6 +456,7 @@ func (self *worker) commitNewWork() {
 
 	tstart := time.Now()
 	parent := self.chain.CurrentBlock()
+	prevParent := self.chain.GetBlockByNumber(parent.NumberU64() - 1)
 
 	// Only try to commit new work if we are mining
 	if atomic.LoadInt32(&self.mining) == 1 {
@@ -470,7 +471,7 @@ func (self *worker) commitNewWork() {
 				log.Error("Failed when trying to commit new work", "err", err)
 				return
 			}
-			preIndex, curIndex, ok, err := posv.YourTurn(masternodes, snap, parent.Header(), self.coinbase)
+			preIndex, curIndex, ok, err := posv.YourTurn(masternodes, snap, prevParent, self.coinbase)
 			if err != nil {
 				log.Error("Failed when trying to commit new work", "err", err)
 				return
@@ -478,7 +479,7 @@ func (self *worker) commitNewWork() {
 			if !ok {
 				log.Info("Not my turn to commit block. Waiting...")
 				// in case some nodes are down
-				if preIndex == -1 {
+				if preIndex == -2 {
 					// first block
 					return
 				}
@@ -486,7 +487,7 @@ func (self *worker) commitNewWork() {
 					// you're not allowed to create this block
 					return
 				}
-				h := hop(len(masternodes), preIndex, curIndex)
+				h := hop(len(masternodes), preIndex+1, curIndex)
 				gap := waitPeriod * int64(h)
 				// Check nearest checkpoint block in hop range.
 				nearest := self.config.Posv.Epoch - (parent.Header().Number.Uint64() % self.config.Posv.Epoch)
