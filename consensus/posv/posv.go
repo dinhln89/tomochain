@@ -395,14 +395,16 @@ func (c *Posv) verifyCascadingFields(chain consensus.ChainReader, header *types.
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
+		signersPrint := []common.Address{}
 		i := 0
 		for signer, _ := range snap.Signers {
 			copy(signers[i*common.AddressLength:], signer[:])
+			signersPrint = append(signersPrint, signer)
 			i++
 		}
 		extraSuffix := len(header.Extra) - extraSeal
 		if !bytes.Equal(header.Extra[extraVanity:extraSuffix], signers) {
-			log.Debug("masternodes list mismatch", "from header.Extra", header.Extra[extraVanity:extraSuffix], "from snapshot", signers)
+			log.Debug("masternodes list mismatch", "from header.Extra", header.Extra[extraVanity:extraSuffix], "from snapshot", signersPrint)
 			return errInvalidCheckpointSigners
 		}
 		if c.HookVerifyMNs != nil {
